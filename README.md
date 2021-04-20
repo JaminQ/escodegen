@@ -1,4 +1,4 @@
-## `javascript-obfuscator` fork for `JaminQ` package
+## `javascript-obfuscator/escodegen` fork for `jamin/escodegen` package
 
 Add this PR: https://github.com/estools/escodegen/pull/438
 

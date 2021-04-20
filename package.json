@@ -1,6 +1,6 @@
 {
-    "name": "@javascript-obfuscator/escodegen",
-    "description": "`escodegen` fork for `javascript-obfuscator``",
+    "name": "@jamin/escodegen",
+    "description": "`javascript-obfuscator/escodegen` fork for `jamin/escodegen`",
     "homepage": "http://github.com/estools/escodegen",
     "main": "escodegen.js",
     "files": [
@@ -10,7 +10,7 @@
         "escodegen.js",
         "package.json"
     ],
-    "version": "2.1.1",
+    "version": "2.1.2",
     "engines": {
         "node": ">=6.0"
     },
