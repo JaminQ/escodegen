@@ -64,7 +64,7 @@
         FORMAT_MINIFY,
         FORMAT_DEFAULTS;
 
-    estraverse = require('estraverse');
+    estraverse = require('jamin-estraverse');
     esutils = require('esutils');
 
     Syntax = estraverse.Syntax;
