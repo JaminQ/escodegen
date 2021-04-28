@@ -61,6 +61,7 @@
         sourceMap,
         sourceCode,
         preserveBlankLines,
+        minifyLines,
         FORMAT_MINIFY,
         FORMAT_DEFAULTS;
 
@@ -194,7 +195,8 @@
                 parentheses: true,
                 semicolons: true,
                 safeConcatenation: false,
-                preserveBlankLines: false
+                preserveBlankLines: false,
+                minifyLines: false, // minifyLines - 是否处理覆盖率中不能插桩的代码行
             },
             moz: {
                 comprehensionExpressionStartsWithAssignment: false,
@@ -1022,6 +1024,7 @@
 
     CodeGenerator.Statement = {
 
+        // 处理块级语法
         BlockStatement: function (stmt, flags) {
             var range, content, result = ['{', newline], that = this;
 
@@ -1087,7 +1090,12 @@
                                 result.push(newline);
                             }
                         } else {
-                            result.push(newline);
+                            if (minifyLines) {
+                                // 最后一行不 push 换行了
+                                i < iz - 1 && result.push(newline);
+                            } else {
+                                result.push(newline);
+                            }
                         }
                     }
 
@@ -1102,7 +1110,7 @@
                 }
             });
 
-            result.push(addIndent('}'));
+            result.push((minifyLines && stmt.body.length !== 0) ? (space + '}') : addIndent('}'));
             return result;
         },
 
@@ -1120,25 +1128,27 @@
             return 'continue' + this.semicolon(flags);
         },
 
+        // 处理 class 语法
         ClassBody: function (stmt, flags) {
-            var result = [ '{', newline], that = this;
+            var result = minifyLines ? [ '{' ] : [ '{', newline], that = this;
 
             withIndent(function (indent) {
                 var i, iz;
 
                 for (i = 0, iz = stmt.body.length; i < iz; ++i) {
-                    result.push(indent);
+                    result.push(minifyLines ? space : indent);
                     result.push(that.generateExpression(stmt.body[i], Precedence.Sequence, E_TTT));
-                    if (i + 1 < iz) {
+                    if (i + 1 < iz && !minifyLines) {
                         result.push(newline);
                     }
                 }
             });
 
-            if (!endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
+            if (!minifyLines && !endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
                 result.push(newline);
             }
             result.push(base);
+            minifyLines && result.push(space);
             result.push('}');
             return result;
         },
@@ -1224,6 +1234,7 @@
             return result;
         },
 
+        // export 声明
         ExportNamedDeclaration: function (stmt, flags) {
             var result = [ 'export' ], bodyFlags, that = this;
 
@@ -1246,17 +1257,17 @@
                     result = join(result, '{');
                     withIndent(function (indent) {
                         var i, iz;
-                        result.push(newline);
+                        result.push(minifyLines ? space: newline);
                         for (i = 0, iz = stmt.specifiers.length; i < iz; ++i) {
-                            result.push(indent);
+                            !minifyLines && result.push(indent);
                             result.push(that.generateExpression(stmt.specifiers[i], Precedence.Sequence, E_TTT));
                             if (i + 1 < iz) {
-                                result.push(',' + newline);
+                                result.push(',', minifyLines ? space: newline);
                             }
                         }
                     });
                     if (!endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
-                        result.push(newline);
+                        result.push(minifyLines ? space: newline);
                     }
                     result.push(base + '}');
                 }
@@ -1356,6 +1367,7 @@
             return result;
         },
 
+        // import 声明
         ImportDeclaration: function (stmt, flags) {
             // ES6: 15.2.1 valid import declarations:
             //     - import ImportClause FromClause ;
@@ -1415,19 +1427,20 @@
                         //    ...,
                         //    ...,
                         // } from "...";
+                        minifyLines && result.push(space);
                         withIndent(function (indent) {
                             var i, iz;
-                            result.push(newline);
+                            !minifyLines && result.push(newline);
                             for (i = cursor, iz = stmt.specifiers.length; i < iz; ++i) {
-                                result.push(indent);
+                                !minifyLines && result.push(indent);
                                 result.push(that.generateExpression(stmt.specifiers[i], Precedence.Sequence, E_TTT));
                                 if (i + 1 < iz) {
-                                    result.push(',' + newline);
+                                    minifyLines ? result.push(',', space) : result.push(',' + newline);
                                 }
                             }
                         });
                         if (!endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
-                            result.push(newline);
+                            result.push(minifyLines ? space : newline);
                         }
                         result.push(base + '}' + space);
                     }
@@ -2113,13 +2126,14 @@
             return this.ArrayExpression(expr, precedence, flags, true);
         },
 
+        // 数组表达式
         ArrayExpression: function (expr, precedence, flags, isPattern) {
             var result, multiline, that = this;
             if (!expr.elements.length) {
                 return '[]';
             }
             multiline = isPattern ? false : expr.elements.length > 1;
-            result = ['[', multiline ? newline : ''];
+            result = minifyLines ? ['[', space] : ['[', multiline ? newline : ''];
             withIndent(function (indent) {
                 var i, iz;
                 for (i = 0, iz = expr.elements.length; i < iz; ++i) {
@@ -2131,19 +2145,19 @@
                             result.push(',');
                         }
                     } else {
-                        result.push(multiline ? indent : '');
+                        !minifyLines && result.push(multiline ? indent : '');
                         result.push(that.generateExpression(expr.elements[i], Precedence.Assignment, E_TTT));
                     }
                     if (i + 1 < iz) {
-                        result.push(',' + (multiline ? newline : space));
+                        minifyLines ? result.push(',', space) : result.push(',' + (multiline ? newline : space));
                     }
                 }
             });
-            if (multiline && !endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
+            if (multiline && !minifyLines && !endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
                 result.push(newline);
             }
-            result.push(multiline ? base : '');
-            result.push(']');
+            !minifyLines && result.push(multiline ? base : '');
+            minifyLines ? result.push(space, ']') : result.push(']');
             return result;
         },
 
@@ -2199,7 +2213,8 @@
             var fragment = [
                 this.generatePropertyKey(expr.key, expr.computed),
                 space + '=' +space,
-                this.generateExpression(expr.value, Precedence.Assignment, E_TTT)
+                this.generateExpression(expr.value, Precedence.Assignment, E_TTT),
+                this.semicolon(flags)
             ];
             return join(result, fragment);
         },
@@ -2239,6 +2254,7 @@
             ];
         },
 
+        // 对象表达式
         ObjectExpression: function (expr, precedence, flags) {
             var multiline, result, fragment, that = this;
 
@@ -2267,25 +2283,25 @@
 
             withIndent(function (indent) {
                 var i, iz;
-                result = [ '{', newline, indent, fragment ];
+                result = minifyLines ? [ '{', space, fragment ] : [ '{', newline, indent, fragment ];
 
                 if (multiline) {
-                    result.push(',' + newline);
+                    minifyLines ? result.push(',', space) : result.push(',' + newline);
                     for (i = 1, iz = expr.properties.length; i < iz; ++i) {
-                        result.push(indent);
+                        !minifyLines && result.push(indent);
                         result.push(that.generateExpression(expr.properties[i], Precedence.Sequence, E_TTT));
                         if (i + 1 < iz) {
-                            result.push(',' + newline);
+                            minifyLines ? result.push(', ') : result.push(',' + newline);
                         }
                     }
                 }
             });
 
-            if (!endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
+            if (!endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString()) && !minifyLines) {
                 result.push(newline);
             }
-            result.push(base);
-            result.push('}');
+            !minifyLines && result.push(base);
+            minifyLines ? result.push(space, '}') : result.push('}');
             return result;
         },
 
@@ -2521,11 +2537,12 @@
             return expr.value.raw;
         },
 
+        // 模板语法
         TemplateLiteral: function (expr, precedence, flags) {
             var result, i, iz;
             result = [ '`' ];
             for (i = 0, iz = expr.quasis.length; i < iz; ++i) {
-                result.push(this.generateExpression(expr.quasis[i], Precedence.Primary, E_TTT));
+                result.push(this.generateExpression(expr.quasis[i], Precedence.Primary, E_TTT).replace(/\n/g, '\\n'));
                 if (i + 1 < iz) {
                     result.push('${' + space);
                     result.push(this.generateExpression(expr.expressions[i], Precedence.Sequence, E_TTT));
@@ -2650,6 +2667,7 @@
         sourceMap = options.sourceMap;
         sourceCode = options.sourceCode;
         preserveBlankLines = options.format.preserveBlankLines && sourceCode !== null;
+        minifyLines = options.format.minifyLines;
         extra = options;
 
         if (sourceMap) {
