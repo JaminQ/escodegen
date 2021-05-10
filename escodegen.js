@@ -2336,23 +2336,23 @@
                     }
                 }
             }
-            result = ['{', multiline ? newline : '' ];
+            result = ['{', multiline && !minifyLines ? newline : '' ];
 
             withIndent(function (indent) {
                 var i, iz;
                 for (i = 0, iz = expr.properties.length; i < iz; ++i) {
-                    result.push(multiline ? indent : '');
+                    result.push(multiline ? (minifyLines ? space : indent) : '');
                     result.push(that.generateExpression(expr.properties[i], Precedence.Sequence, E_TTT));
                     if (i + 1 < iz) {
-                        result.push(',' + (multiline ? newline : space));
+                        result.push(',' + (minifyLines ? '' : (multiline ? newline : space)));
                     }
                 }
             });
 
-            if (multiline && !endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
+            if (multiline && !minifyLines && !endsWithLineTerminator(toSourceNodeWhenNeeded(result).toString())) {
                 result.push(newline);
             }
-            result.push(multiline ? base : '');
+            result.push(minifyLines ? space : (multiline ? base : ''));
             result.push('}');
             return result;
         },
