@@ -1090,12 +1090,13 @@
                                 result.push(newline);
                             }
                         } else {
-                            if (minifyLines) {
-                                // 最后一行不 push 换行了
-                                i < iz - 1 && result.push(newline);
-                            } else {
-                                result.push(newline);
-                            }
+                            result.push(newline);
+                            // if (minifyLines) {
+                            //     // 最后一行不 push 换行了
+                            //     i < iz - 1 && result.push(newline);
+                            // } else {
+                            //     result.push(newline);
+                            // }
                         }
                     }
 
@@ -1110,7 +1111,8 @@
                 }
             });
 
-            result.push((minifyLines && stmt.body.length !== 0) ? (space + '}') : addIndent('}'));
+            result.push(addIndent('}'));
+            // result.push((minifyLines && stmt.body.length !== 0) ? (space + '}') : addIndent('}'));
             return result;
         },
 
