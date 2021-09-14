@@ -10,7 +10,7 @@
         "escodegen.js",
         "package.json"
     ],
-    "version": "2.1.5",
+    "version": "2.1.6",
     "engines": {
         "node": ">=6.0"
     },
@@ -34,7 +34,7 @@
         "esprima": "^4.0.1",
         "estraverse": "^5.2.0",
         "esutils": "^2.0.2",
-        "jamin-estraverse": "^5.2.1",
+        "jamin-estraverse": "^5.2.2",
         "optionator": "^0.8.1"
     },
     "optionalDependencies": {
